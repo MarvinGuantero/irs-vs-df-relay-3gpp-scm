@@ -7,6 +7,7 @@ The work extends deterministic IRS-vs-relay analysis by incorporating fading ran
 ---
 
 ## 📌 Project Overview
+![Graphical Abstract](images/graphical_abstract.png)
 
 Modern wireless systems require both high throughput and robust reliability under realistic channel conditions.  
 This project evaluates three schemes in a 3GPP UMi downlink setting:
