@@ -1,0 +1,1055 @@
+\documentclass[journal]{IEEEtran} % two-column layout
+\usepackage[utf8]{inputenc}
+\usepackage{geometry}
+\geometry{a4paper, margin=1in}
+\usepackage{graphicx} % Required for inserting images
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{siunitx}
+\usepackage{booktabs}
+\usepackage{physics}
+\usepackage{enumitem}
+\usepackage{multirow}
+\usepackage{hyperref}
+\usepackage{algorithm}
+\usepackage{subcaption} % For subfigure environment
+\usepackage[caption=false,font=footnotesize]{subfig}
+\usepackage{float}
+\usepackage{url}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usetikzlibrary{shapes.geometric, arrows.meta, positioning, calc}
+\usepackage{siunitx}
+\usepackage{physics}
+\usepackage{tabularx}
+
+\AtBeginDocument{\RenewCommandCopy\qty\SI}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=blue,
+  citecolor=blue,
+  urlcolor=blue
+}
+
+\begin{document}
+
+
+\title{\Huge\textbf{Intelligent Reflecting Surface vs.\ Decode-and-Forward Relay Under Stochastic Fading and 3GPP Spatial Channel Model}}
+\author{
+Marvin A. Guantero$^{1}$ \and Lawrence Materum$^{1,2,*}$ \\
+\\
+$^{1}$Department of Electronics, Computer, and Electrical Engineering,\\
+De La Salle University, Manila 1004, Philippines \\
+$^{2}$International Centre, Tokyo City University, Tokyo, 158-8557, Japan \\
+\\
+Email: marvin\_guantero@dlsu.edu.ph (M.A.G.); materuml@dlsu.edu.ph (L.M.) \\
+$^{*}$Corresponding author
+}
+
+
+
+\maketitle
+
+\begin{abstract}
+Intelligent reflecting surfaces (IRS) have emerged as a promising alternative to conventional decode-and-forward (DF) relaying for coverage extension in wireless networks. While prior analytical studies have demonstrated the $N^2$ beamforming gain of IRS under deterministic channel assumptions, the performance under realistic stochastic fading remains insufficiently characterised. This paper extends the analytical framework of Bj\"{o}rnson \textit{et al.} (2020) by evaluating IRS and DF relay performance under the 3GPP Spatial Channel Model (SCM) with variable Ricean $K$-factor, pathloss exponent, and scattering cluster count. Using spectral efficiency as the primary metric, the study conducts four parameter sweeps across 1000 Monte Carlo realisations in a 3GPP Urban Micro-cell (UMi) deployment at 3~GHz. Results show that IRS with $N = 200$ elements outperforms DF relay by $+56.8\%$ to $+64.3\%$ in median spectral efficiency across all channel conditions tested. The 10th percentile (outage) analysis reveals that IRS is $1.8\times$ more sensitive to $K$-factor than DF relay: the IRS outage-to-median ratio improves from 75.7\% ($K = 0$~dB) to 98.1\% ($K = 25$~dB), approaching the DF relay stability of 98.9\%. An extended pathloss exponent sweep ($\alpha_{\mathrm{PL}} \in \{0.5, 1.0, 2.0, 3.0, 4.5\}$) demonstrates that IRS achieves its largest advantage in guided-propagation environments ($\alpha_{\mathrm{PL}} \leq 2.0$), where the cascaded effective exponent remains at or below free-space levels. The cluster count sweep ($L \in \{1, 3, 6, 20\}$) shows that multipath diversity steepens the spectral efficiency distribution without shifting the median, providing ``free'' reliability enhancement. The minimum number of IRS elements required to outperform DF relay, $N_{\mathrm{min}}$, decreases by 11.1\% from $K = 0$~dB to $K = 25$~dB, with diminishing returns beyond $K = 10$~dB. Design guidelines for IRS deployment are provided, including $K$-dependent sizing formulas, environment suitability criteria, and frequency-band recommendations.
+\end{abstract}
+
+\begin{IEEEkeywords}
+Intelligent reflecting surface, reconfigurable intelligent surface, decode-and-forward relay, spectral efficiency, Ricean fading, spatial channel model, 3GPP, outage probability, pathloss exponent, multipath diversity.
+\end{IEEEkeywords}
+
+% ==========================================================================
+% SECTION 1: INTRODUCTION
+% ==========================================================================
+\section{Introduction}
+\label{sec:introduction}
+
+The exponential growth in mobile data traffic, driven by video streaming, Internet of Things (IoT) devices, and emerging extended reality (XR) applications, demands wireless networks that deliver both high throughput and consistent coverage~\cite{cisco2023forecast}. Fifth-generation (5G) and beyond-5G (B5G) networks address these demands through densification, massive MIMO, and millimetre-wave (mmWave) spectrum allocation~\cite{rappaport2015mmwave,andrews2014will}. However, these approaches face fundamental limitations: densification increases infrastructure cost and inter-cell interference, massive MIMO requires power-hungry active radio-frequency (RF) chains, and mmWave signals suffer from severe penetration loss and limited coverage range~\cite{bai2015coverage}.
+
+Against this backdrop, intelligent reflecting surfaces (IRS)---also termed reconfigurable intelligent surfaces (RIS)---have attracted significant research attention as a cost-effective, energy-efficient mechanism for improving wireless coverage and spectral efficiency~\cite{wu2020irs_tutorial,basar2019wireless,direnzo2020smart}. An IRS consists of a planar array of passive reflecting elements, each of which can independently adjust the phase of an incident electromagnetic wave. By optimising these phase shifts, the IRS creates constructive interference at a target receiver, effectively ``shaping'' the wireless propagation environment without generating new RF signals or consuming transmit power~\cite{huang2019irs_ee}.
+
+\subsection{IRS vs.\ Conventional Relaying}
+
+The most natural benchmark for IRS is the decode-and-forward (DF) relay, which has been the dominant cooperative communication technique for over two decades~\cite{laneman2004cooperative,nosratinia2004cooperative}. Both technologies serve the same fundamental purpose---providing an alternative signal path when the direct source-to-destination link is weak---but they differ architecturally in several important ways:
+
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Signal processing}: The DF relay actively receives, decodes, re-encodes, and retransmits the signal, requiring a full RF transceiver chain. The IRS passively reflects the signal with phase adjustment only, requiring no RF chain, no analog-to-digital conversion, and no power amplifier~\cite{wu2020irs_tutorial}.
+
+    \item \textbf{Duplexing}: The DF relay operates in half-duplex mode (receiving and transmitting in separate time slots), incurring a pre-log factor of $1/2$ in spectral efficiency~\cite{laneman2004cooperative}. The IRS reflects continuously in full-duplex, incurring no time-slot penalty.
+
+    \item \textbf{Power scaling}: The IRS beamforming gain scales as $N^2$ with the number of reflecting elements $N$, because the coherently combined signal amplitudes add linearly while the received power is proportional to the squared magnitude~\cite{bjornson2020irs}. The DF relay gain does not scale with any equivalent array parameter.
+
+    \item \textbf{Channel structure}: The IRS channel is a \textit{cascaded} product of two links (source-to-IRS and IRS-to-destination), resulting in a multiplicative ``double fading'' effect~\cite{basar2019wireless,tang2020irs_pathloss}. The DF relay isolates the two hops through decoding, avoiding this multiplicative penalty.
+\end{itemize}
+
+The seminal work by Bj\"{o}rnson \textit{et al.}~\cite{bjornson2020irs} provided the first rigorous analytical comparison of IRS and DF relay, deriving the minimum number of IRS elements $N_{\mathrm{min}}$ required to outperform DF relaying in terms of transmit power. Their analysis, conducted under \textit{deterministic} channel assumptions (i.e., channels are known constants), demonstrated that $N_{\mathrm{min}}$ ranges from approximately 50 to 500 elements depending on the deployment geometry. This result established a clear engineering guideline: IRS can beat DF relay, but only if the surface is sufficiently large.
+
+\subsection{The Stochastic Fading Gap}
+
+A critical limitation of the deterministic analysis in~\cite{bjornson2020irs} is that real-world wireless channels are inherently stochastic. Small-scale fading---caused by constructive and destructive interference of multipath components---introduces random fluctuations in the received signal strength that can span 20--40~dB within a wavelength~\cite{tse2005fundamentals}. This randomness affects the IRS and DF relay \textit{differently} because of their distinct channel structures:
+
+\begin{itemize}[leftmargin=*]
+    \item The IRS cascaded channel $|h_{\mathrm{SR}}| \cdot |h_{\mathrm{RD}}|$ is a \textit{product} of two random variables. The variance of such a product is generally larger than the variance of either factor~\cite{simon2005digital}, making IRS performance potentially more variable than single-hop schemes.
+
+    \item The DF relay channel $\min(|h_{\mathrm{SR}}|^2, |h_{\mathrm{RD}}|^2)$ is a \textit{selection} (minimum) of two random variables. This selection provides built-in diversity, limiting the impact of any single deep fade.
+\end{itemize}
+
+This structural asymmetry raises a fundamental question: \textit{Does the IRS advantage over DF relay, established under deterministic channels, persist under realistic stochastic fading? And if so, how do specific channel parameters---the Ricean $K$-factor, pathloss exponent, and scattering richness---modulate this advantage?}
+
+\subsection{Contributions}
+
+This paper addresses the above questions through a comprehensive Monte Carlo simulation study using the 3GPP Spatial Channel Model (SCM)~\cite{etsi125996}. The specific contributions are:
+
+\begin{enumerate}
+    \item \textbf{Stochastic extension of the Bj\"{o}rnson framework}: The deterministic IRS-vs-relay analysis of~\cite{bjornson2020irs} is extended to stochastic channels by replacing the fixed channel coefficients with independent SCM realisations. Spectral efficiency (SE), rather than transmit power, is adopted as the primary performance metric, enabling direct evaluation of achievable data rates.
+
+    \item \textbf{Comprehensive $K$-factor characterisation}: Three Ricean $K$-factor regimes ($K \in \{0, 10, 25\}$~dB) are evaluated, spanning from near-Rayleigh fading to very strong line-of-sight (LOS). Both median and outage (10th percentile) SE are analysed, revealing a $1.8\times$ asymmetric sensitivity of IRS to $K$-factor compared to DF relay.
+
+    \item \textbf{Extended pathloss exponent sweep}: Five pathloss exponents ($\alpha_{\mathrm{PL}} \in \{0.5, 1.0, 2.0, 3.0, 4.5\}$), including sub-free-space values, are evaluated. This reveals a previously unreported regime where IRS achieves its largest advantage: guided-propagation environments (tunnels, corridors) with $\alpha_{\mathrm{PL}} < 2.0$.
+
+    \item \textbf{Multipath diversity quantification}: Four cluster counts ($L \in \{1, 3, 6, 20\}$) isolate the effect of scattering richness on SE distribution shape. The variance reduction scaling $\mathrm{Var} \propto 1/L$ is confirmed, and frequency-band implications (sub-6~GHz vs.\ mmWave) are derived.
+
+    \item \textbf{Practical design guidelines}: A $K$-dependent $N_{\mathrm{min}}$ correction formula, environment suitability criteria, and geometric placement rules are provided for IRS deployment planning.
+\end{enumerate}
+
+\subsection{Paper Organisation}
+
+The remainder of this paper is organised as follows. Section~\ref{sec:literature} reviews the relevant literature on IRS channel modelling, performance analysis, and comparison with relay systems. Section~\ref{sec:methodology} describes the system model, channel generation procedure, performance metrics, and simulation configuration. Section~\ref{sec:results} presents the simulation results and provides physical analysis alongside each result. Section~\ref{sec:discussion} discusses the findings in the context of existing literature, examines limitations, and identifies future research directions. Section~\ref{sec:conclusion} concludes the paper with a summary of key findings and design recommendations.
+
+
+
+% ==========================================================================
+% SECTION 2: LITERATURE REVIEW
+% ==========================================================================
+\section{Literature Review}
+\label{sec:literature}
+
+This section reviews the existing body of work on IRS technology, organised into five themes: IRS fundamentals and surveys, IRS channel modelling, IRS performance analysis, IRS-vs-relay comparison, and spatial channel modelling for performance evaluation.
+
+\subsection{IRS Fundamentals and Surveys}
+
+The concept of programmable wireless environments was introduced by Liaskos \textit{et al.}~\cite{liaskos2018hypersurface}, who proposed hypersurface-based metasurfaces capable of shaping electromagnetic waves in software-defined ways. Basar \textit{et al.}~\cite{basar2019wireless} provided one of the earliest comprehensive surveys of RIS-assisted wireless communications, establishing the terminology and identifying the key research challenges: channel estimation, phase optimisation, and deployment strategy. Wu and Zhang~\cite{wu2020irs_tutorial} extended this with a tutorial-style treatment, deriving the $N^2$ beamforming gain under ideal phase alignment and demonstrating that IRS can improve both coverage and energy efficiency. Di Renzo \textit{et al.}~\cite{direnzo2020smart} presented a communication-theoretic framework for ``smart radio environments,'' formalising the notion that IRS transforms the wireless channel from an uncontrollable obstacle into a tuneable system parameter.
+
+More recently, Pan \textit{et al.}~\cite{pan2022overview} provided a comprehensive overview of RIS-aided communications, covering signal model formulations, optimisation frameworks for joint active and passive beamforming, and practical deployment considerations including hardware impairments. Liu \textit{et al.}~\cite{liu2021ris_survey} surveyed the integration of IRS with other enabling technologies for 6G, including non-orthogonal multiple access (NOMA), simultaneous wireless information and power transfer (SWIPT), and physical layer security.
+
+These surveys establish a consensus that IRS offers significant theoretical advantages over conventional infrastructure. However, they also highlight a persistent gap: the majority of analytical results assume either deterministic channels or simplified Rayleigh/Ricean models without the spatial structure of standardised channel models~\cite{pan2022overview}.
+
+\subsection{IRS Channel Modelling and Pathloss}
+
+Accurate channel modelling is essential for realistic IRS performance evaluation. Tang \textit{et al.}~\cite{tang2020irs_pathloss} conducted the first comprehensive pathloss measurement campaign for RIS-assisted links, demonstrating that the reflected path experiences a product-distance pathloss proportional to $(d_{\mathrm{SR}} \cdot d_{\mathrm{RD}})^{-\alpha_{\mathrm{PL}}}$, effectively doubling the pathloss exponent compared to single-hop links. This ``double-fading'' effect was further characterised through free-space and indoor measurements at 2.3~GHz and 28.5~GHz, confirming the theoretical $d^{-2}$ far-field scaling for individual IRS elements.
+
+Ozdogan \textit{et al.}~\cite{ozdogan2020ris_pathloss} provided analytical expressions for the IRS pathloss under both far-field and near-field conditions, showing that the near-field regime (within the Fraunhofer distance $d_{\mathrm{Fraun}} = 2D^2/\lambda$) produces different power scaling laws than the conventional $N^2$ far-field model. For $N = 200$ elements at 3~GHz, $d_{\mathrm{Fraun}} \approx 20$~m, which is comparable to the shortest relay-to-destination distances in the Urban Micro-cell scenarios considered in this paper.
+
+Garc\'{\i}a-Corrales \textit{et al.}~\cite{garcia2023ris_channel} extended the channel modelling framework by incorporating correlated fading across IRS elements due to spatial proximity. Their analysis showed that spatial correlation reduces the effective $N^2$ gain to $N^{2\gamma}$ with $\gamma < 1$, where $\gamma$ depends on the angular spread and inter-element spacing. At half-wavelength spacing (as used in this paper), $\gamma \approx 0.95$--$0.99$ for typical urban angular spreads, indicating that the ideal $N^2$ scaling is approximately valid.
+
+\subsection{IRS Performance Analysis}
+
+\subsubsection{Spectral Efficiency and Capacity}
+
+Wu and Zhang~\cite{wu2019irs_beamforming} formulated the joint active and passive beamforming optimisation problem for IRS-assisted MISO downlink, maximising the received signal-to-noise ratio (SNR) by alternating between transmit precoding and IRS phase optimisation. They proved that the optimal IRS phase shifts align the reflected path coherently with the direct path, producing the constructive superposition $|h_{\mathrm{SD}}| + N\alpha|h_{\mathrm{SR}}||h_{\mathrm{RD}}|$ used in this paper.
+
+Guo \textit{et al.}~\cite{guo2020irs_weighted} extended this to the weighted sum-rate maximisation problem for multi-user MISO systems, showing that IRS can simultaneously serve multiple users by exploiting spatial degrees of freedom in the reflected channel. However, the per-user gain reduces from $\mathcal{O}(N^2)$ to $\mathcal{O}(N)$ in the multi-user regime, a significant reduction that motivates the single-user analysis in this paper.
+
+\subsubsection{Energy Efficiency}
+
+Huang \textit{et al.}~\cite{huang2019irs_ee} demonstrated that IRS-assisted communication can achieve up to 300\% improvement in energy efficiency compared to conventional relay-assisted systems, primarily because the IRS consumes only static circuit power (for phase control) and no transmit power. This advantage makes IRS particularly attractive for green communication initiatives and energy-harvesting-powered networks.
+
+\subsubsection{Outage Probability and Error Performance}
+
+Boulogeorgos and Alexiou~\cite{boulogeorgos2020ris_error} analysed the outage probability and symbol error rate of RIS-assisted communications over Nakagami-$m$ fading channels. They derived closed-form approximations showing that the diversity order of the RIS-assisted link equals the product $m \cdot N$ for large $N$, where $m$ is the Nakagami fading parameter. This result implies that even moderate $N$ can provide substantial diversity gains in fading channels.
+
+Kudathanthirige \textit{et al.}~\cite{kudathanthirige2020ris_performance} provided exact outage probability expressions for RIS-assisted dual-hop communications, accounting for the statistical distribution of the cascaded channel. Their analysis revealed that the outage probability decreases exponentially with $N$ under Rayleigh fading but only polynomially under Ricean fading with high $K$-factor, because the deterministic LOS component dominates the fading statistics.
+
+\subsection{IRS vs.\ Relay Comparison}
+
+The direct comparison of IRS and DF relay was initiated by Bj\"{o}rnson \textit{et al.}~\cite{bjornson2020irs}, who derived the minimum number of IRS elements $N_{\mathrm{min}}$ required to achieve lower transmit power than DF relay at a fixed data rate. Using deterministic 3GPP UMi pathloss models, they showed that $N_{\mathrm{min}}$ exhibits a U-shaped profile versus source-destination distance, with the minimum occurring when the destination is directly in front of the IRS. This seminal result---and the associated MATLAB simulation code---forms the foundation of the present study.
+
+Abdullah \textit{et al.}~\cite{abdullah2021irs_vs_relay} extended the IRS-relay comparison to multi-user scenarios with imperfect CSI, showing that IRS maintains its advantage over DF relay when the number of users is small ($U \leq 4$) but loses its advantage at higher user counts due to the reduced per-user beamforming gain. Their results highlight the importance of evaluating IRS performance under practical constraints rather than idealised assumptions.
+
+Yildirim \textit{et al.}~\cite{yildirim2021hybrid_irs_relay} proposed a hybrid IRS-relay architecture that combines the benefits of both technologies: the IRS provides passive beamforming gain while a co-located DF relay amplifies the signal for users in deep shadow. Their simulation results showed that the hybrid architecture outperforms both pure IRS and pure DF relay across a wide range of deployment scenarios.
+
+Ntontin \textit{et al.}~\cite{ntontin2022ris_vs_relay} provided a comparative analysis of RIS and amplify-and-forward (AF) relay under Ricean fading, deriving conditions on the $K$-factor and $N$ under which IRS outperforms AF relay. Their work is the closest to the present study in terms of incorporating Ricean fading; however, they considered only the AF relay (not DF) and used a simplified single-cluster channel model rather than the full SCM.
+
+\subsection{Spatial Channel Modelling for IRS Evaluation}
+
+The 3GPP Spatial Channel Model (SCM), standardised in ETSI TR~125~996~\cite{etsi125996}, provides a geometry-based stochastic channel model with explicit multipath cluster structure, angular spreads, and delay profiles. The SCM has been widely adopted for MIMO system evaluation and serves as the basis for more recent 3GPP channel models including TR~38.901 for 5G NR~\cite{3gpp38901}.
+
+Bj\"{o}rnson \textit{et al.}~\cite{bjornson2024mimobook} provided a comprehensive treatment of channel modelling for massive MIMO systems, including the SCM framework used in this paper. Their textbook describes the cluster-based multipath structure, Ricean LOS/NLOS decomposition, and the statistical properties of the resulting channel coefficients.
+
+The application of standardised channel models to IRS evaluation remains limited. Most IRS studies use independent Rayleigh or Ricean fading without spatial structure~\cite{wu2020irs_tutorial,basar2019wireless}, which does not capture the cluster-based multipath characteristics of real propagation environments. Samimi and Rappaport~\cite{samimi2016mmwave_scm} demonstrated that 3D statistical channel models with explicit cluster structure are essential for accurate mmWave system evaluation, as the number of scattering clusters ($L$) directly affects the channel rank, diversity order, and beam alignment probability.
+
+Rappaport \textit{et al.}~\cite{rappaport2015mmwave} conducted extensive propagation measurements at 28~GHz and 73~GHz in urban environments, reporting pathloss exponents ranging from 1.68 (LOS, short range) to 5.76 (NLOS, obstructed), with cluster counts varying from 1--3 (mmWave) to 6--20 (sub-6~GHz). These measurements motivate the wide parameter ranges used in the present study ($\alpha_{\mathrm{PL}} \in \{0.5, 1.0, 2.0, 3.0, 4.5\}$, $L \in \{1, 3, 6, 20\}$). Molisch~\cite{molisch2006channel} further documented that indoor corridors and tunnels can exhibit pathloss exponents as low as 1.0--1.8 due to waveguide effects, supporting the inclusion of sub-free-space exponents in this study.
+
+\subsection{Research Gap and Motivation}
+
+Table~\ref{tab:literature_gap} summarises the key features of related work and identifies the gap addressed by this study.
+
+\begin{table*}[t]
+\centering
+\caption{Comparison of Related Work on IRS vs.\ Relay Performance Evaluation}
+\label{tab:literature_gap}
+\begin{tabular}{@{}lcccccc@{}}
+\toprule
+Reference & Channel Model & Fading Type & $K$-factor Sweep & PL Exponent Sweep & Cluster Sweep & SE Metric \\
+\midrule
+Bj\"{o}rnson \textit{et al.}~\cite{bjornson2020irs}        & 3GPP UMi (deterministic) & None            & \texttimes & \texttimes & \texttimes & Power \\
+Wu and Zhang~\cite{wu2019irs_beamforming}                    & Rayleigh                 & Rayleigh        & \texttimes & \texttimes & \texttimes & SNR \\
+Ntontin \textit{et al.}~\cite{ntontin2022ris_vs_relay}      & Single-cluster Ricean    & Ricean          & \checkmark & \texttimes & \texttimes & Outage \\
+Abdullah \textit{et al.}~\cite{abdullah2021irs_vs_relay}     & Rayleigh                 & Rayleigh        & \texttimes & \texttimes & \texttimes & Sum-rate \\
+Kudathanthirige \textit{et al.}~\cite{kudathanthirige2020ris_performance} & Rayleigh/Ricean & Both & \checkmark & \texttimes & \texttimes & Outage \\
+\textbf{This work}                                           & \textbf{3GPP SCM}        & \textbf{Ricean} & \checkmark & \checkmark & \checkmark & \textbf{SE + Outage} \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+The key gap is that no prior study has simultaneously:
+\begin{enumerate}
+    \item used a standardised spatial channel model (3GPP SCM) with explicit cluster structure;
+    \item swept the Ricean $K$-factor across a wide range including very strong LOS ($K = 25$~dB);
+    \item evaluated pathloss exponents below the free-space baseline ($\alpha_{\mathrm{PL}} < 2.0$);
+    \item varied the scattering cluster count to quantify multipath diversity effects; and
+    \item evaluated both median and outage SE to capture reliability differences between IRS and DF relay.
+\end{enumerate}
+
+This study fills all five gaps simultaneously, providing the most comprehensive stochastic comparison of IRS and DF relay to date.
+
+
+
+
+
+
+% ==========================================================================
+% SECTION: METHODOLOGY (UPDATED)
+% ==========================================================================
+\section{Methodology}
+\label{sec:methodology}
+
+This section describes the system model, channel generation procedure, performance metric, and simulation configuration used to evaluate IRS-assisted and DF relay communications under the 3GPP Spatial Channel Model with variable Ricean $K$-factor.
+
+\subsection{System Model and Deployment Geometry}
+
+The simulation models a 3GPP Urban Micro-cell (UMi) single-user downlink scenario at carrier frequency $f_c = 3$~GHz with system bandwidth $B = 10$~MHz, consistent with the deployment parameters specified in~\cite{bjornson2020irs,3gpp36814}. The noise power at the receiver is:
+\begin{align}
+    \sigma^2 = k_B T \cdot B \cdot F
+    \label{eq:noise_power}
+\end{align}
+where $k_B T = -174$~dBm/Hz is the thermal noise power spectral density at room temperature, $B = 10$~MHz is the system bandwidth, and $F = 10$~dB is the receiver noise figure. This yields $\sigma^2 = -94$~dBm.
+
+The deployment geometry, illustrated in Fig.~\ref{fig:geometry}, consists of three nodes:
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Source~(S)}: Fixed at the coordinate origin, equipped with a single antenna with gain $G_{\mathrm{S}} = 5$~dBi.
+    \item \textbf{Relay\,/\,IRS~(R)}: Positioned at horizontal distance $d_{\mathrm{SR}} = 80$~m from the source along the $x$-axis. The relay has antenna gain $G_{\mathrm{R}} = 5$~dBi. The IRS has $N$ reflecting elements with half-wavelength inter-element spacing ($d_{\mathrm{elem}} = \lambda/2 = 5$~cm at 3~GHz).
+    \item \textbf{Destination~(D)}: Moves along a trajectory parallel to the $x$-axis at perpendicular offset $d_v = 10$~m. Its horizontal coordinate $d_1$ is swept from 40~m to 100~m in 2~m increments. The destination antenna gain is $G_{\mathrm{D}} = 0$~dBi.
+\end{itemize}
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=\columnwidth]{figures/fig_geometry.png}
+    \caption{Simulation geometry. The source~(S) is at the origin. The relay/IRS~(R) is at distance $d_{\mathrm{SR}} = 80$~m. The destination~(D) moves at perpendicular offset $d_v = 10$~m with horizontal distance $d_1 \in [40, 100]$~m. The S$\to$D direct link (dashed) is NLOS. The S$\to$R and R$\to$D links (solid) are LOS.}
+    \label{fig:geometry}
+\end{figure}
+
+The source-to-destination distance is $d_{\mathrm{SD}} = \sqrt{d_1^2 + d_v^2}$, and the relay/IRS-to-destination distance is $d_{\mathrm{RD}} = \sqrt{(d_1 - d_{\mathrm{SR}})^2 + d_v^2}$. The S$\to$D direct link is modelled as NLOS (obstructed by buildings), while the S$\to$R and R$\to$D links are modelled as LOS (the relay/IRS is deployed with clear sightlines).
+
+\subsection{Transmission Schemes}
+
+Three schemes are evaluated at fixed transmit power $P_{\mathrm{tx}} = 20$~dBm (100~mW):
+
+\subsubsection{SISO (Direct Transmission)}
+The source transmits directly to the destination over the NLOS S$\to$D link. No relay or IRS assistance is used. This serves as the baseline.
+
+\subsubsection{Decode-and-Forward (DF) Relay}
+The relay receives the source signal in the first time slot, fully decodes and re-encodes it, then retransmits to the destination in the second time slot~\cite{laneman2004cooperative}. Both hops (S$\to$R and R$\to$D) operate over LOS links. The relay transmits at the same power $P_{\mathrm{tx}}$.
+
+\subsubsection{Intelligent Reflecting Surface (IRS)}
+An IRS with $N$ passive reflecting elements assists the transmission. Each element adjusts the phase of the incident signal to align coherently at the destination. The IRS has amplitude reflection coefficient $\alpha = 1$ (ideal lossless reflection). The destination receives two superimposed components: the direct S$\to$D NLOS path and the reflected S$\to$IRS$\to$D LOS path. The IRS operates in full-duplex (reflects continuously without time-slotting).
+
+\subsection{Performance Metric: Spectral Efficiency}
+
+The primary performance metric is the instantaneous spectral efficiency:
+\begin{align}
+    \mathrm{SE} = \log_2\!\left(1 + \mathrm{SNR}\right) \quad [\text{bit/s/Hz}]
+    \label{eq:se_general}
+\end{align}
+where $\mathrm{SNR} = P_{\mathrm{tx}} |h|^2 / \sigma^2$ is the instantaneous signal-to-noise ratio at the receiver, $|h|^2$ is the effective channel power gain, $P_{\mathrm{tx}}$ is the transmit power, and $\sigma^2$ is the noise power from Eq.~\eqref{eq:noise_power}. The SE represents the maximum achievable data rate per unit bandwidth under Gaussian signalling~\cite{goldsmith2005wireless}.
+
+For each scheme, the SE is computed as follows.
+
+\textbf{SISO:}
+\begin{align}
+    \mathrm{SE}_{\mathrm{SISO}} = \log_2\!\left(1 + \frac{P_{\mathrm{tx}}\,|h_{\mathrm{SD}}|^2}{\sigma^2}\right)
+    \label{eq:se_siso}
+\end{align}
+where $h_{\mathrm{SD}}$ is the complex channel coefficient of the S$\to$D NLOS link, incorporating both small-scale fading and large-scale pathloss.
+
+\textbf{DF Relay:}
+\begin{align}
+    \mathrm{SE}_{\mathrm{DF}} = \frac{1}{2}\,\log_2\!\left(1 + \frac{P_{\mathrm{tx}}\,\min\!\left(|h_{\mathrm{SR}}|^2,\, |h_{\mathrm{RD}}|^2\right)}{\sigma^2}\right)
+    \label{eq:se_df}
+\end{align}
+where $h_{\mathrm{SR}}$ and $h_{\mathrm{RD}}$ are the complex channel coefficients of the S$\to$R and R$\to$D LOS links, respectively. The pre-log factor of $1/2$ accounts for the half-duplex penalty: two time slots are consumed to deliver one message. The $\min(\cdot)$ operator reflects the bottleneck constraint---the relay can only forward what it successfully decodes, so the end-to-end rate is limited by the weaker hop~\cite{laneman2004cooperative,hasna2003relay}.
+
+\textbf{IRS:}
+\begin{align}
+    \mathrm{SE}_{\mathrm{IRS}} = \log_2\!\left(1 + \frac{P_{\mathrm{tx}}\left(|h_{\mathrm{SD}}| + N\alpha\,|h_{\mathrm{SR}}|\,|h_{\mathrm{RD}}|\right)^2}{\sigma^2}\right)
+    \label{eq:se_irs}
+\end{align}
+where $N$ is the number of IRS reflecting elements ($N = 200$ for the SE analysis), $\alpha = 1$ is the amplitude reflection coefficient, and $|h_{\mathrm{SR}}|$, $|h_{\mathrm{RD}}|$ are the magnitudes of the S$\to$IRS and IRS$\to$D LOS channel coefficients. Under optimal phase alignment at the IRS controller, the magnitudes of all $N$ element contributions add coherently, producing the term $N\alpha|h_{\mathrm{SR}}||h_{\mathrm{RD}}|$. This coherent combining yields the characteristic $N^2$ power scaling of IRS beamforming gain~\cite{wu2020irs_tutorial,bjornson2020irs}. No half-duplex penalty applies because the IRS reflects passively and continuously.
+
+\subsection{3GPP Spatial Channel Model}
+
+Each channel coefficient ($h_{\mathrm{SD}}$, $h_{\mathrm{SR}}$, $h_{\mathrm{RD}}$) is generated as an independent realisation of the 3GPP Spatial Channel Model~(SCM), compliant with ETSI TR~125~996~\cite{etsi125996} and the multipath framework in~\cite{bjornson2024mimobook}. The channel coefficient consists of three components: small-scale fading, large-scale pathloss, and antenna gains.
+
+\subsubsection{Small-Scale Fading: NLOS Component}
+
+The scattered (NLOS) fading aggregates contributions from $L$ scattering clusters, each containing $M$ sub-paths with random phases:
+\begin{align}
+    h_{\mathrm{NLOS}} = \sum_{l=1}^{L}\sum_{m=1}^{M} \sqrt{\frac{P_l}{M}}\; e^{j\phi_{l,m}}
+    \label{eq:h_nlos}
+\end{align}
+where $L$ is the number of scattering clusters, $M = 20$ is the number of sub-paths per cluster (fixed per ETSI TR~125~996 Table~5.2~\cite{etsi125996}), $P_l$ is the normalised power of the $l$-th cluster ($\sum_{l=1}^{L} P_l = 1$), $\phi_{l,m} \sim \mathcal{U}[0, 2\pi)$ is the random initial phase of sub-path $(l, m)$, and $j$ is the imaginary unit.
+
+The sub-path angular offsets within each cluster follow the fixed values from ETSI TR~125~996 Table~5.2, with 10 positive and 10 negative offsets symmetric about each cluster's mean angle of departure $\theta_l$. The cluster mean angles are drawn as $\theta_l \sim \mathcal{N}(0, \sigma_{\mathrm{AS}}^2)$ with azimuth spread $\sigma_{\mathrm{AS}} = 35^\circ$.
+
+\subsubsection{Cluster Power Generation}
+
+The cluster powers follow the ETSI Step~6 exponentially decaying model with log-normal perturbation:
+\begin{align}
+    P_l = \frac{10^{\left(-\tau_l / \sigma_\tau \;+\; 0.2\,Z_l\right)}}{\displaystyle\sum_{l'=1}^{L} 10^{\left(-\tau_{l'} / \sigma_\tau \;+\; 0.2\,Z_{l'}\right)}}
+    \label{eq:cluster_power}
+\end{align}
+where $\tau_l$ is the excess delay of the $l$-th cluster, $\sigma_\tau = 0.251~\mu$s is the RMS delay spread for UMi~\cite{etsi125996}, $Z_l \sim \mathcal{N}(0,1)$ is a standard normal random variable providing log-normal shadow fading with 2~dB standard deviation, and the denominator normalises the total power to unity.
+
+The cluster delays are generated as $\tau_{\mathrm{raw},l} = -\sigma_\tau \ln(U_l)$ with $U_l \sim \mathcal{U}(0,1)$, sorted in ascending order, and normalised so that the minimum delay is zero: $\tau_l = \tau_{\mathrm{sorted},l} - \min(\tau_{\mathrm{sorted}})$. This produces an exponentially distributed delay profile with clusters arriving at increasing delays, where later-arriving clusters carry progressively less power---a characteristic of urban multipath propagation~\cite{rappaport2015mmwave,samimi2016mmwave_scm}.
+
+\subsubsection{Small-Scale Fading: Ricean LOS Component}
+
+For LOS links (S$\to$IRS and IRS$\to$D), the scattered component from Eq.~\eqref{eq:h_nlos} is combined with a deterministic LOS component using the Ricean model:
+\begin{align}
+    h = \sqrt{\frac{K}{1+K}}\;e^{j\psi} + \frac{1}{\sqrt{1+K}}\;h_{\mathrm{NLOS}}
+    \label{eq:h_ricean}
+\end{align}
+where $K$ is the Ricean $K$-factor in linear scale, $\psi \sim \mathcal{U}[0, 2\pi)$ is the random LOS phase, and the two scaling factors ensure that $\mathbb{E}[|h|^2] = 1$ regardless of $K$.
+
+The Ricean $K$-factor is defined as the ratio of LOS power to average scattered power:
+\begin{align}
+    K = \frac{\text{LOS power}}{\text{Scattered power}} = \frac{|h_{\mathrm{LOS}}|^2}{\mathbb{E}\!\left[|h_{\mathrm{NLOS}}|^2\right]}
+    \label{eq:k_factor_def}
+\end{align}
+Three representative $K$-factor values are evaluated in this study, selected to span the range from near-Rayleigh fading to very strong LOS dominance:
+
+\begin{table}[t]
+\centering
+\caption{Ricean $K$-Factor Values and Physical Interpretation}
+\label{tab:k_factor_values}
+\begin{tabular}{@{}lcll@{}}
+\toprule
+Label & $K$ [dB] & $K$ [linear] & Physical Scenario \\
+\midrule
+Small   & 0  & 1.0   & Equal LOS and scatter  \\
+Average & 10 & 10.0  & LOS 10$\times$ stronger  \\
+High    & 25 & 316.2 & LOS 316$\times$ stronger \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+For the NLOS direct link (S$\to$D), the Ricean component is not applied ($K$ is irrelevant); only the scattered fading from Eq.~\eqref{eq:h_nlos} is used.
+
+\subsubsection{Large-Scale Pathloss}
+
+The effective channel coefficient including pathloss and antenna gains is:
+\begin{align}
+    h_{\mathrm{eff}} = h \cdot \sqrt{\beta(d) \cdot G_{\mathrm{tx}} \cdot G_{\mathrm{rx}}}
+    \label{eq:h_effective}
+\end{align}
+where $h$ is the normalised small-scale fading coefficient from Eq.~\eqref{eq:h_ricean} or Eq.~\eqref{eq:h_nlos}, $\beta(d)$ is the distance-dependent pathloss in linear scale, and $G_{\mathrm{tx}}$, $G_{\mathrm{rx}}$ are the transmit and receive antenna gains in linear scale.
+
+The pathloss follows the 3GPP UMi model from TS~36.814~\cite{3gpp36814}:
+\begin{align}
+    \beta_{\mathrm{LOS}}(d) &= 10^{(-28 - 20\log_{10}f_c - 22\log_{10}d)\,/\,10} \label{eq:pl_los} \\
+    \beta_{\mathrm{NLOS}}(d) &= 10^{(-22.7 - 26\log_{10}f_c - 36.7\log_{10}d)\,/\,10} \label{eq:pl_nlos}
+\end{align}
+where $f_c = 3$~GHz and $d$ is the link distance in metres. The S$\to$R and R$\to$D links use $\beta_{\mathrm{LOS}}$; the S$\to$D link uses $\beta_{\mathrm{NLOS}}$.
+
+For the pathloss exponent sweep (Sweep~2), a generalised model is employed that applies the variable exponent to both LOS and NLOS links:
+\begin{align}
+    \beta_{\mathrm{LOS}}(d, \alpha_{\mathrm{PL}}) &= 10^{(-28 - 20\log_{10}f_c - \alpha_{\mathrm{PL}} \cdot 10\log_{10}d)\,/\,10} \label{eq:pl_los_var} \\
+    \beta_{\mathrm{NLOS}}(d, \alpha_{\mathrm{PL}}) &= 10^{(-22.7 - 26\log_{10}f_c - \alpha_{\mathrm{PL}} \cdot 10\log_{10}d)\,/\,10} \label{eq:pl_nlos_var}
+\end{align}
+where $\alpha_{\mathrm{PL}}$ is the pathloss exponent, swept across five values representing a wide range of propagation environments:
+
+\begin{table}[t]
+\centering
+\caption{Pathloss Exponent Values and Physical Interpretation}
+\label{tab:pl_values}
+\begin{tabular}{@{}cll@{}}
+\toprule
+$\alpha_{\mathrm{PL}}$ & Environment & Physical Mechanism \\
+\midrule
+0.5 & Tunnel / waveguide  & Guided propagation confines energy \\
+1.0 & Indoor corridor     & Strong wall reflections focus signal \\
+2.0 & Free-space (Friis)  & Theoretical baseline, no obstruction \\
+3.0 & Suburban            & Moderate building density \\
+4.5 & Dense urban         & Severe shadowing and diffraction \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{IRS Cascaded Channel Model}
+
+The IRS total channel under optimal phase alignment combines the direct NLOS path and the reflected LOS path:
+\begin{align}
+    h_{\mathrm{total}} = |h_{\mathrm{SD}}| + N\alpha\,|h_{\mathrm{SR}}|\,|h_{\mathrm{RD}}|
+    \label{eq:h_irs_total}
+\end{align}
+where the magnitudes add coherently because the IRS controller sets each element's phase to align the reflected signal constructively with the direct signal at the destination. The effective channel power gain is $|h_{\mathrm{total}}|^2$, which is substituted into Eq.~\eqref{eq:se_irs}.
+
+The cascaded pathloss of the reflected path is the product of the two individual link pathlosses:
+\begin{align}
+    \beta_{\mathrm{cascade}} = \beta_{\mathrm{LOS}}(d_{\mathrm{SR}}) \cdot \beta_{\mathrm{LOS}}(d_{\mathrm{RD}})
+    \label{eq:cascaded_pl}
+\end{align}
+This multiplicative structure results in an effective pathloss exponent of $2\alpha_{\mathrm{PL}}$ for the reflected path, compared to $\alpha_{\mathrm{PL}}$ for single-hop links~\cite{tang2020irs_pathloss}---a phenomenon known as the ``double-fading'' effect~\cite{basar2019wireless}.
+
+\subsection{$N_{\mathrm{min}}$ Computation}
+
+The minimum number of IRS elements $N_{\mathrm{min}}$ required to outperform DF relay at target rate $\bar{R} = 4$~bit/s/Hz is determined via the following procedure:
+
+\begin{enumerate}
+    \item For each distance $d_1$ and $K$-factor, generate 1000 independent channel realisations using the SCM.
+    \item For each realisation, compute the required transmit power for both DF relay and IRS at each candidate $N \in \{25, 50, 75, \ldots, 800\}$ using the SINR targets:
+    \begin{align}
+        \mathrm{SINR}_{\mathrm{SISO/IRS}} &= 2^{\bar{R}} - 1 = 15 \label{eq:sinr_irs} \\
+        \mathrm{SINR}_{\mathrm{DF}} &= 2^{2\bar{R}} - 1 = 255 \label{eq:sinr_df}
+    \end{align}
+    where the DF relay requires a higher SINR target because the half-duplex penalty doubles the rate requirement per time slot~\cite{bjornson2020irs}.
+    \item Compute the median transmit power across all realisations for both schemes at each $N$.
+    \item Identify the smallest $N$ at which the median IRS power falls below the median DF relay power. Linear interpolation between adjacent $N$ values refines the crossing point.
+\end{enumerate}
+
+The median (50th percentile) is used instead of the mean because $\mathbb{E}[1/|h|^2]$ diverges for Rayleigh-faded channels due to the heavy lower tail~\cite{tse2005fundamentals}, making the mean transmit power an unreliable metric.
+
+\subsection{Simulation Configuration and Parameter Sweeps}
+
+Table~\ref{tab:sweep_config} summarises the four parameter sweeps conducted. Each sweep varies one channel parameter while holding the others at their default values ($K = 10$~dB, $L = 6$, $\alpha_{\mathrm{PL}} = 3.67$). This one-at-a-time design isolates the individual effect of each parameter on the SE distribution.
+
+\begin{table*}[t]
+\centering
+\caption{Simulation Parameter Sweeps}
+\label{tab:sweep_config}
+\begin{tabular}{@{}clll@{}}
+\toprule
+Sweep & Parameter & Values Tested & Fixed Parameters \\
+\midrule
+1 & $K$-factor [dB] & 0, 10, 25 &
+$L = 6$, $\alpha_{\mathrm{PL}} = 3.67$ \\
+
+2 & PL exponent $\alpha_{\mathrm{PL}}$ &
+0.5, 1.0, 2.0, 3.0, 4.5 &
+$K = 10$~dB, $L = 6$ \\
+
+3 & Cluster count $L$ &
+1, 3, 6, 20 &
+$K = 10$~dB, $\alpha_{\mathrm{PL}} = 3.67$ \\
+
+4 & $K$-factor [dB] &
+0, 10, 25 &
+$N_{\mathrm{min}}$ search \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+A total of 1000 independent Monte Carlo channel realisations are generated per evaluation point for all sweeps. The random seed is fixed ($\mathrm{seed} = 42$) for reproducibility.
+
+Table~\ref{tab:system_params} consolidates all fixed system parameters.
+
+\begin{table}[t]
+\centering
+\caption{Fixed System Parameters}
+\label{tab:system_params}
+\begin{tabular}{@{}lll@{}}
+\toprule
+Parameter & Symbol & Value \\
+\midrule
+Carrier frequency & $f_c$ & 3~GHz \\
+Wavelength & $\lambda$ & 0.1~m \\
+Bandwidth & $B$ & 10~MHz \\
+Noise figure & $F$ & 10~dB \\
+Noise power & $\sigma^2$ & $-94$~dBm \\
+Transmit power & $P_{\mathrm{tx}}$ & 20~dBm (100~mW) \\
+S$\to$R distance & $d_{\mathrm{SR}}$ & 80~m \\
+Vertical offset & $d_v$ & 10~m \\
+Source antenna gain & $G_{\mathrm{S}}$ & 5~dBi \\
+Relay/IRS antenna gain & $G_{\mathrm{R}}$ & 5~dBi \\
+Destination antenna gain & $G_{\mathrm{D}}$ & 0~dBi \\
+IRS reflection coefficient & $\alpha$ & 1 (ideal) \\
+IRS elements (SE analysis) & $N$ & 200 \\
+Sub-paths per cluster & $M$ & 20 \\
+Azimuth spread & $\sigma_{\mathrm{AS}}$ & $35^\circ$ \\
+RMS delay spread & $\sigma_\tau$ & $0.251~\mu$s \\
+Target rate ($N_{\mathrm{min}}$ search) & $\bar{R}$ & 4~bit/s/Hz \\
+Monte Carlo realisations & --- & 1000 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% ==========================================================================
+% SECTION: RESULTS AND ANALYSIS (MERGED — Professor's Suggestion #1)
+% ==========================================================================
+\section{Results and Analysis}
+\label{sec:results}
+
+This section presents the numerical results from the four parameter sweeps defined in Section~\ref{sec:methodology} and provides physical analysis alongside each result. All results are based on 1000 independent Monte Carlo channel realisations per evaluation point, with spectral efficiency~(SE) computed at fixed transmit power $P_{\mathrm{tx}} = 20$~dBm.
+
+% --------------------------------------------------------------------------
+\subsection{Spectral Efficiency vs.\ Distance Under Variable $K$-Factor}
+\label{sec:results_se_vs_dist}
+% --------------------------------------------------------------------------
+
+\begin{figure*}[t]
+    \centering
+    \begin{subfigure}[t]{0.32\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{figures/fig5_K0dB.png}
+        \caption{Small: $K = 0$~dB.}
+        \label{fig:se_dist_K0}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[t]{0.32\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{figures/fig5_K10dB.png}
+        \caption{Average: $K = 10$~dB.}
+        \label{fig:se_dist_K10}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[t]{0.32\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{figures/fig5_K25dB.png}
+        \caption{High: $K = 25$~dB.}
+        \label{fig:se_dist_K25}
+    \end{subfigure}
+        \caption{Mean spectral efficiency versus source--destination distance $d_1$ for three Ricean $K$-factor regimes. SISO (dashed), DF relay (dash-dot), and IRS with $N = 200$ elements (solid). All panels share the same vertical-axis limits to enable direct visual comparison.}
+    \label{fig:se_vs_distance}
+\end{figure*}
+
+Fig.~\ref{fig:se_vs_distance} presents the mean SE versus source--destination horizontal distance $d_1$ from Sweep~1 (variable $K$-factor at fixed $L = 6$, $\alpha_{\mathrm{PL}} = 3.67$). All three panels share the same vertical-axis limits. Three observations are immediately apparent:
+
+\begin{enumerate}
+    \item \textbf{Ranking}: IRS with $N = 200$ consistently achieves the highest SE at every distance, followed by DF relay and SISO. This ranking holds for all three $K$-factor values.
+
+    \item \textbf{SISO invariance}: The SISO SE remains approximately constant across $K$-factors, measuring $\mathrm{SE}_{\mathrm{SISO}} \approx 4.1$--$4.3$~bit/s/Hz at $d_1 = 80$~m. This is expected because the direct S$\to$D link operates under NLOS conditions and is unaffected by the Ricean $K$-factor.
+
+    \item \textbf{IRS sensitivity}: As $K$ increases from 0~dB to 25~dB, the IRS SE curve shifts upward and the gap between IRS and DF relay widens.
+\end{enumerate}
+
+\subsubsection{Analysis: Asymmetric $K$-Factor Sensitivity}
+
+The IRS median SE at $d_1 = 80$~m increases from 11.364~bit/s/Hz ($K = 0$~dB) to 12.167~bit/s/Hz ($K = 25$~dB)---a gain of $+7.07\%$. The DF relay improves by only $+2.19\%$ (7.246 $\to$ 7.405~bit/s/Hz). This 3.2:1 sensitivity ratio arises because the IRS channel depends on the \textit{product} $|h_{\mathrm{SR}}| \cdot |h_{\mathrm{RD}}|$, whose variance is~\cite{simon2005digital}:
+\begin{align}
+    \mathrm{Var}(XY) &= \mathrm{Var}(X)\,\mathrm{Var}(Y) + \mathrm{Var}(X)\,[\mathbb{E}(Y)]^2 \nonumber \\
+    &\quad+ \mathrm{Var}(Y)\,[\mathbb{E}(X)]^2
+    \label{eq:product_variance}
+\end{align}
+As $K$ increases, all three terms decrease simultaneously, causing the product variance to shrink faster than either individual factor. The DF relay uses $\min(|h_{\mathrm{SR}}|^2, |h_{\mathrm{RD}}|^2)$---a selection operation that provides inherent robustness independent of $K$~\cite{hasna2003relay,laneman2004cooperative}.
+
+The distance profile reveals structural differences: SISO SE decreases monotonically with $d_1$ due to increasing pathloss, while DF relay and IRS exhibit a characteristic inverted-U shape peaking near $d_1 = 80$~m where $d_{\mathrm{RD}}$ is minimised.
+
+% --------------------------------------------------------------------------
+\subsection{Median and Outage Spectral Efficiency}
+\label{sec:results_median_outage}
+% --------------------------------------------------------------------------
+
+Table~\ref{tab:se_median} quantifies the median (50th percentile) and outage (10th percentile) SE at $d_1 = 80$~m. The median represents typical operating performance, while the 10th percentile captures the worst 10\% of channel realisations.
+
+\textbf{Why outage must be computed.} In fading channels, the \textit{instantaneous} SE varies randomly from one channel realisation to the next. The median alone does not reveal how badly performance degrades during deep fades. A system with high median SE but poor outage performance would deliver unreliable service---users would experience frequent throughput drops below acceptable levels. The 10th percentile SE (also called the outage capacity at 10\% outage probability) is the standard reliability metric in wireless system design~\cite{goldsmith2005wireless,tse2005fundamentals}: it represents the SE that is \textit{guaranteed} to be exceeded in 90\% of all channel realisations. Comparing the outage SE across schemes reveals which architecture provides the most \textit{consistent} service, not just the highest \textit{average} throughput. This distinction is critical for IRS deployment because the cascaded channel $|h_{\mathrm{SR}}| \cdot |h_{\mathrm{RD}}|$ is vulnerable to ``double fading''---if either hop fades deeply, the product collapses, potentially causing outage even when the median SE is high~\cite{basar2019wireless}.
+
+\begin{table}[t]
+\centering
+\caption{Spectral Efficiency at $d_1 = 80$~m, $N = 200$ [bit/s/Hz]}
+\label{tab:se_median}
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{@{}lcccccc@{}}
+\toprule
+& \multicolumn{3}{c}{Median (50th pct)} & \multicolumn{3}{c}{Outage (10th pct)} \\
+\cmidrule(lr){2-4} \cmidrule(lr){5-7}
+$K$-factor & SISO & DF & IRS & SISO & DF & IRS \\
+\midrule
+0~dB (Small)    & 4.173 & 7.246 & 11.364 & 1.975 & 6.031 & 8.606 \\
+10~dB (Average) & 4.149 & 7.353 & 11.931 & 1.669 & 6.925 & 10.765 \\
+25~dB (High)    & 4.292 & 7.405 & 12.167 & 1.942 & 7.327 & 11.938 \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=\columnwidth]{figures/fig10_SE_bar_chart.png}
+        \caption{Grouped bar chart of median SE at $d_1 = 80$~m for SISO, DF relay, and IRS ($N = 200$), across three $K$-factor regimes. Error bars span the 10th to 90th percentiles of the SE distribution.}
+    \label{fig:se_bar_chart}
+\end{figure}
+
+\subsubsection{Analysis: Outage Reliability}
+
+The outage-to-median ratio $\eta_{\mathrm{outage}} = \mathrm{SE}_{10\%} / \mathrm{SE}_{50\%}$ quantifies performance consistency:
+
+\begin{table}[t]
+\centering
+\caption{Outage-to-Median Ratio $\eta_{\mathrm{outage}}$ at $d_1 = 80$~m}
+\label{tab:outage_ratio}
+\begin{tabular}{@{}lccc@{}}
+\toprule
+$K$-factor & SISO & DF Relay & IRS ($N\!=\!200$) \\
+\midrule
+0~dB   & 47.3\% & 83.2\% & 75.7\% \\
+10~dB  & 40.2\% & 94.2\% & 90.2\% \\
+25~dB  & 45.2\% & 98.9\% & 98.1\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Three observations emerge. \textbf{First}, DF relay consistently achieves the highest $\eta_{\mathrm{outage}}$ (83.2\%--98.9\%), confirming its architectural robustness. \textbf{Second}, IRS $\eta_{\mathrm{outage}}$ improves dramatically from 75.7\% ($K = 0$~dB) to 98.1\% ($K = 25$~dB)---nearly matching DF relay. At $K = 0$~dB, the worst 10\% of IRS realisations lose one-quarter of the median throughput; at $K = 25$~dB, this loss drops to only 1.9\%. \textbf{Third}, the IRS-to-DF sensitivity ratio is:
+\begin{equation}
+\begin{aligned}
+\text{Sensitivity ratio}
+&=
+\frac{\Delta\mathrm{SE}_{\mathrm{IRS}}^{10\%} /
+      \mathrm{SE}_{\mathrm{IRS}}^{10\%}(K=0)}
+{\Delta\mathrm{SE}_{\mathrm{DF}}^{10\%} /
+      \mathrm{SE}_{\mathrm{DF}}^{10\%}(K=0)}
+\\[2mm]
+&=
+\frac{38.7\%}{21.5\%}
+=
+1.80
+\end{aligned}
+\label{eq:sensitivity_ratio}
+\end{equation}
+IRS is 1.8$\times$ more sensitive to $K$-factor than DF relay at the outage level.
+
+% --------------------------------------------------------------------------
+\subsection{Empirical CDFs: Effect of $K$-Factor (Sweep~1)}
+\label{sec:results_cdf_kfactor}
+% --------------------------------------------------------------------------
+
+\begin{figure*}[t]
+    \centering
+    \begin{subfigure}[t]{0.32\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{figures/fig6_SISO.png}
+        \caption{SISO.}
+        \label{fig:cdf_k_siso}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[t]{0.32\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{figures/fig6_DF.png}
+        \caption{DF relay.}
+        \label{fig:cdf_k_df}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[t]{0.32\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{figures/fig6_IRS.png}
+        \caption{IRS ($N = 200$).}
+        \label{fig:cdf_k_irs}
+    \end{subfigure}
+                \caption{Empirical CDF of spectral efficiency at $d_1 = 80$~m for three Ricean $K$-factors: $K = 0$~dB, $K = 10$~dB, and $K = 25$~dB. All panels share the same horizontal-axis limits. The SISO CDFs~\subref{fig:cdf_k_siso} overlap, confirming $K$-invariance. The IRS CDFs~\subref{fig:cdf_k_irs} transform from a broad S-curve to a near-vertical step function as $K$ increases.}
+    \label{fig:cdf_se_kfactor}
+\end{figure*}
+
+Fig.~\ref{fig:cdf_se_kfactor} presents the empirical CDFs at $d_1 = 80$~m. The SISO CDFs overlap almost identically across all $K$ values, confirming $K$-invariance. The DF relay CDFs shift moderately rightward with increasing $K$. The IRS CDFs undergo the most dramatic transformation: from a broad S-curve at $K = 0$~dB to a near-vertical step function at $K = 25$~dB.
+
+\subsubsection{Analysis: CDF Shape Transformation}
+
+The IRS CDF transformation from broad to vertical quantitatively demonstrates channel hardening. At $K = 25$~dB (linear $K = 316.2$), the LOS component contributes 99.7\% of the total received power, suppressing scatter-induced fluctuations. This provides retroactive justification for deterministic closed-form $N_{\mathrm{min}}$ expressions~\cite{bjornson2020irs}: such expressions become increasingly accurate as $K$ increases.
+
+The SISO CDF invariance across $K$ values serves as a built-in \textit{sanity check}: since the S$\to$D link is NLOS, the Ricean $K$-factor should have no effect, and indeed the three SISO curves are indistinguishable.
+
+% --------------------------------------------------------------------------
+\subsection{Empirical CDFs: Effect of Pathloss Exponent (Sweep~2)}
+\label{sec:results_cdf_pathloss}
+% --------------------------------------------------------------------------
+
+\begin{figure*}[t]
+    \centering
+    \begin{subfigure}[t]{0.32\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{figures/fig7_SISO.png}
+        \caption{SISO.}
+        \label{fig:cdf_pl_siso}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[t]{0.32\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{figures/fig7_DF.png}
+        \caption{DF relay.}
+        \label{fig:cdf_pl_df}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[t]{0.32\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{figures/fig7_IRS.png}
+        \caption{IRS ($N = 200$).}
+        \label{fig:cdf_pl_irs}
+    \end{subfigure}
+            \caption{Empirical CDF of spectral efficiency at $d_1 = 80$~m for five pathloss exponents $\alpha_{\mathrm{PL}} \in \{0.5, 1.0, 2.0, 3.0, 4.5\}$, at fixed $K = 10$~dB and $L = 6$. All panels share the same horizontal-axis limits. Lower $\alpha_{\mathrm{PL}}$ shifts all CDFs rightward. The IRS panel~\subref{fig:cdf_pl_irs} shows the widest separation due to the doubled effective exponent ($2\alpha_{\mathrm{PL}}$).}
+    \label{fig:cdf_se_pathloss}
+\end{figure*}
+
+Fig.~\ref{fig:cdf_se_pathloss} presents CDFs from Sweep~2. Higher pathloss exponents shift all CDFs leftward. The IRS panel exhibits the widest spread because the cascaded channel experiences an effective exponent of $2\alpha_{\mathrm{PL}}$:
+\begin{align}
+    \beta_{\mathrm{IRS}} \propto d_{\mathrm{SR}}^{-\alpha_{\mathrm{PL}}} \cdot d_{\mathrm{RD}}^{-\alpha_{\mathrm{PL}}} = \left(d_{\mathrm{SR}} \cdot d_{\mathrm{RD}}\right)^{-\alpha_{\mathrm{PL}}}
+    \label{eq:cascaded_pathloss}
+\end{align}
+
+\subsubsection{Analysis: Double-Exponent Effect and Sub-Free-Space Regime}
+
+Table~\ref{tab:effective_exponent} shows the effective exponent for each scheme.
+
+\begin{table}[t]
+\centering
+\caption{Effective Pathloss Exponent by Scheme}
+\label{tab:effective_exponent}
+\begin{tabular}{@{}lccc@{}}
+\toprule
+$\alpha_{\mathrm{PL}}$ & SISO / DF & IRS (cascaded) & Ratio \\
+\midrule
+0.5 & 0.5 & 1.0 & 2$\times$ \\
+1.0 & 1.0 & 2.0 & 2$\times$ \\
+2.0 & 2.0 & 4.0 & 2$\times$ \\
+3.0 & 3.0 & 6.0 & 2$\times$ \\
+4.5 & 4.5 & 9.0 & 2$\times$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The inclusion of $\alpha_{\mathrm{PL}} = 0.5$ and $1.0$ reveals a sub-free-space regime not captured by previous studies. At $\alpha_{\mathrm{PL}} = 0.5$, the IRS cascaded exponent is only 1.0---below free-space for a single hop. At $\alpha_{\mathrm{PL}} = 1.0$, the cascaded exponent of 2.0 equals free-space, giving IRS nearly lossless cascaded propagation. These sub-free-space exponents are physically realistic in indoor corridors, tunnels, and street canyons~\cite{rappaport2015mmwave,molisch2006channel}.
+
+Based on this analysis, IRS is recommended at $\alpha_{\mathrm{PL}} \leq 3.0$, while DF relay becomes competitive at $\alpha_{\mathrm{PL}} \geq 4.5$:
+
+\begin{table}[t]
+\centering
+\footnotesize
+\caption{IRS vs.\ DF Relay Suitability by Environment}
+\label{tab:env_suitability}
+
+\begin{tabularx}{\columnwidth}{@{}cXcX@{}}
+\toprule
+$\alpha_{\mathrm{PL}}$ & Environment & Recommended & Rationale \\
+\midrule
+0.5 & Tunnel / waveguide & \textbf{IRS} & Maximum $N^2$ gain with minimal path loss. \\
+1.0 & Indoor corridor & \textbf{IRS} & Cascaded path loss is comparable to free-space propagation. \\
+2.0 & Open LOS area & \textbf{IRS} & Maintains a strong performance advantage. \\
+3.0 & Suburban & IRS & Performance advantage becomes marginal. \\
+4.5 & Dense urban & \textbf{DF relay} & Double-fading significantly degrades IRS performance. \\
+\bottomrule
+\end{tabularx}
+
+\end{table}
+
+% --------------------------------------------------------------------------
+\subsection{Empirical CDFs: Effect of Cluster Count (Sweep~3)}
+\label{sec:results_cdf_clusters}
+% --------------------------------------------------------------------------
+
+\begin{figure*}[t]
+    \centering
+    \begin{subfigure}[t]{0.32\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{figures/fig8_SISO.png}
+        \caption{SISO.}
+        \label{fig:cdf_cl_siso}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[t]{0.32\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{figures/fig8_DF.png}
+        \caption{DF relay.}
+        \label{fig:cdf_cl_df}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[t]{0.32\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{figures/fig8_IRS.png}
+        \caption{IRS ($N = 200$).}
+        \label{fig:cdf_cl_irs}
+    \end{subfigure}
+            \caption{Empirical CDF of spectral efficiency at $d_1 = 80$~m for cluster counts $L \in \{1, 3, 6, 20\}$, at fixed $K = 10$~dB and $\alpha_{\mathrm{PL}} = 3.67$. All panels share the same horizontal-axis limits. Increasing $L$ steepens the CDFs without shifting the median, demonstrating multipath diversity.}
+    \label{fig:cdf_se_clusters}
+\end{figure*}
+
+Fig.~\ref{fig:cdf_se_clusters} presents CDFs from Sweep~3. Increasing $L$ does \textit{not} shift the CDF position but \textit{steepens} the curves. The median stability arises because cluster powers are normalised ($\sum_{l=1}^{L} P_l = 1$).
+
+\subsubsection{Analysis: Variance Reduction and Extreme Cases}
+
+The variance decreases as $\mathrm{Var}[|h_{\mathrm{NLOS}}|^2] \propto 1/L$~\cite{tse2005fundamentals}---a direct consequence of the central limit theorem. Two extreme cases illustrate this:
+\begin{itemize}[leftmargin=*]
+    \item \textbf{$L = 1$}: 20 sub-paths from one cluster. A single deep-fading cluster causes the entire channel to collapse, producing a broad CDF with significant outage.
+    \item \textbf{$L = 20$}: 400 sub-paths across 20 independent clusters. The law of large numbers guarantees tight concentration around the mean. The CDF becomes steep and $\eta_{\mathrm{outage}} \to 1.0$.
+\end{itemize}
+
+\textbf{Frequency-band implications.} At sub-6~GHz (e.g., 3~GHz as simulated), rich scattering ($L \geq 6$) is typical---IRS reliability is naturally high. At mmWave (e.g., 28~GHz), sparse scattering ($L = 1$--$3$) is common---IRS has wider SE spread, requiring larger $N$ or strong LOS ($K \geq 25$~dB) to compensate.
+
+% --------------------------------------------------------------------------
+\subsection{$N_{\mathrm{min}}$ Sensitivity to $K$-Factor (Sweep~4)}
+\label{sec:results_nmin}
+% --------------------------------------------------------------------------
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=\columnwidth]{figures/fig9_Nmin_vs_Kfactor.png}
+        \caption{Minimum number of IRS elements $N_{\mathrm{min}}$ versus distance $d_1$ for three Ricean $K$-factors. All curves exhibit the characteristic U-shape with minimum near $d_1 = 80$~m. Higher $K$ shifts the curve downward. Target rate: $\bar{R} = 4$~bit/s/Hz.}
+    \label{fig:nmin_vs_K}
+\end{figure}
+
+\begin{table}[t]
+\centering
+\caption{$N_{\mathrm{min}}$ at $d_1 = 80$~m for Different $K$-Factors}
+\label{tab:nmin_kfactor}
+\begin{tabular}{@{}lcc@{}}
+\toprule
+$K$-factor & $N_{\mathrm{min}}$ & Reduction vs.\ $K = 0$~dB \\
+\midrule
+0~dB (Small)    & 190 & ---  \\
+10~dB (Average) & 174 & $-8.4\%$ \\
+25~dB (High)    & 169 & $-11.1\%$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsubsection{Analysis: Scaling Law and Diminishing Returns}
+
+A practical correction factor for $K$-dependent IRS sizing is:
+\begin{align}
+    N_{\mathrm{min}}^{\mathrm{practical}}(K) \approx N_{\mathrm{min}}^{(0)} \cdot \left(1 - 0.11\,\frac{K_{\mathrm{dB}}}{25}\right)
+    \label{eq:nmin_practical}
+\end{align}
+where $N_{\mathrm{min}}^{(0)} = 190$. The marginal reduction decreases sharply: $-1.6$ elements/dB below $K = 10$~dB versus $-0.33$ elements/dB above $K = 10$~dB (4.8:1 ratio). This confirms that investing in LOS quality beyond $K = 10$~dB provides diminishing returns for IRS sizing.
+
+The U-shaped $N_{\mathrm{min}}$ profile persists across all $K$ values, confirming that the geometric placement rule---minimise $d_{\mathrm{RD}}$ by setting $d_1 \approx d_{\mathrm{SR}}$---is invariant to LOS quality.
+
+% --------------------------------------------------------------------------
+\subsection{IRS SE Gain and Design Recommendations}
+\label{sec:results_se_gain}
+% --------------------------------------------------------------------------
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=\columnwidth]{figures/fig11_SE_gain_heatmap.png}
+        \caption{Heatmap of median SE gain of IRS ($N = 200$) over DF relay as a function of distance $d_1$ and Ricean $K$-factor. The gain is positive everywhere and maximised near $d_1 = 80$~m at high $K$.}
+    \label{fig:se_gain_heatmap}
+\end{figure}
+
+\begin{table}[t]
+\centering
+\caption{IRS SE Gain Over DF Relay at $d_1 = 80$~m}
+\label{tab:se_gain}
+\begin{tabular}{@{}lcc@{}}
+\toprule
+$K$-factor & $\Delta\mathrm{SE}$ [bit/s/Hz] & Relative Gain \\
+\midrule
+0~dB (Small)    & $+4.118$ & $+56.8\%$ over DF \\
+10~dB (Average) & $+4.577$ & $+62.2\%$ over DF \\
+25~dB (High)    & $+4.761$ & $+64.3\%$ over DF \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The IRS advantage decomposes into two factors: \textbf{(1)}~full-duplex operation (no $1/2$ penalty), accounting for $\sim$3.5~bit/s/Hz of the gap; and \textbf{(2)}~$N^2$ beamforming gain~\cite{wu2020irs_tutorial}, contributing the remaining $\sim$1~bit/s/Hz.
+
+\subsubsection{CDF Shape Summary}
+
+Table~\ref{tab:cdf_effects} synthesises how each parameter affects the SE distribution.
+
+\begin{table}[t]
+\caption{Effect of Channel Parameters on SE Distribution}
+\label{tab:cdf_effects}
+\centering
+\begin{tabular}{@{}lccc@{}}
+\toprule
+Parameter & Median Shift & Shape Change & Most Affected \\
+\midrule
+$K \uparrow$                   & Right  & Steeper & IRS \\
+$\alpha_{\mathrm{PL}} \uparrow$ & Left   & Mild    & IRS \\
+$L \uparrow$                   & None   & Steeper & IRS \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsubsection{Design Recommendations}
+
+Based on the combined results and analysis:
+\begin{enumerate}
+    \item \textbf{LOS assessment}: Deploy IRS where $K \geq 10$~dB on both hops. At $K < 5$~dB, DF relay offers superior reliability.
+    \item \textbf{$K$-dependent sizing}: Apply Eq.~\eqref{eq:nmin_practical}. For $K = 10$~dB, multiply analytical $N_{\mathrm{min}}$ by 0.96.
+    \item \textbf{Geometric placement}: Position IRS to minimise $d_{\mathrm{RD}}$ ($d_1 \approx d_{\mathrm{SR}}$). This rule is invariant to $K$, $\alpha_{\mathrm{PL}}$, and $L$.
+    \item \textbf{Environment screening}: IRS is most advantageous at $\alpha_{\mathrm{PL}} \leq 2.0$. At $\alpha_{\mathrm{PL}} \geq 4.5$, evaluate DF relay.
+    \item \textbf{Frequency planning}: At sub-6~GHz ($L \geq 6$), IRS reliability is naturally high. At mmWave ($L \leq 3$), deploy larger $N$ or ensure $K \geq 25$~dB.
+\end{enumerate}
+% ==========================================================================
+% SECTION: DISCUSSION (UPDATED)
+% ==========================================================================
+\section{Discussion}
+\label{sec:discussion}
+
+This section contextualises the simulation findings within the broader IRS literature, examines the limitations of the study, and identifies directions for future research.
+
+\subsection{Comparison with Existing Literature}
+
+\subsubsection{Validation Against the Base Paper}
+
+The baseline results reproduce the analytical findings of Bj\"{o}rnson \textit{et al.}~\cite{bjornson2020irs}: IRS with $N = 200$ elements outperforms DF relay at all distances when $d_1 \approx d_{\mathrm{SR}}$, and the transmit power curves cross at $N_{\mathrm{min}} \approx 169$--$190$ elements depending on the fading environment. The extended simulation generalises these results by incorporating stochastic fading through the 3GPP Spatial Channel Model~\cite{etsi125996}, revealing that the deterministic analysis provides an \textit{upper bound} on IRS performance that becomes increasingly tight as $K$ increases.
+
+\subsubsection{Consistency with IRS Channel Measurement Studies}
+
+The double-fading effect observed in the pathloss exponent sweep (Section~\ref{sec:analysis}) is consistent with the experimental measurements of Tang \textit{et al.}~\cite{tang2020irs_pathloss}, who reported that IRS-reflected paths experience a product-distance pathloss proportional to $(d_{\mathrm{SR}} \cdot d_{\mathrm{RD}})^{-\alpha_{\mathrm{PL}}}$. Our simulation extends their observation by quantifying the SE impact across a wider range of exponents ($\alpha_{\mathrm{PL}} \in \{0.5, 1.0, 2.0, 3.0, 4.5\}$), demonstrating that the double-fading penalty is tolerable only when $\alpha_{\mathrm{PL}} \leq 3.0$.
+
+\subsubsection{Extension Beyond Prior $K$-Factor Studies}
+
+Previous IRS studies~\cite{wu2020irs_tutorial,basar2019wireless} typically assume either pure Rayleigh fading ($K = 0$) or deterministic LOS ($K \to \infty$). The intermediate regime ($K = 10$~dB), corresponding to the 3GPP UMi-LOS default~\cite{3gpp36814}, has received limited attention. Our results show that $K = 10$~dB already recovers the majority of the outage gain achieved at $K = 25$~dB (outage ratio $\eta_{\mathrm{outage}} = 90.2\%$ vs.\ $98.1\%$), suggesting that moderate LOS quality is sufficient for reliable IRS operation.
+
+Furthermore, extending the $K$-factor range to 25~dB (linear $K = 316.2$) demonstrates a regime where the IRS channel becomes near-deterministic. At $K = 25$~dB, the LOS component contributes 99.7\% of the total received power, effectively eliminating fading variability. This validates the deterministic closed-form expressions in~\cite{bjornson2020irs} as accurate approximations for deployment scenarios with strong LOS.
+
+\subsubsection{Novel Contribution: Sub-Free-Space Propagation}
+
+To the best of the authors' knowledge, this is the first study to evaluate IRS performance at pathloss exponents below 2.0. The inclusion of $\alpha_{\mathrm{PL}} = 0.5$ and $\alpha_{\mathrm{PL}} = 1.0$ reveals that IRS achieves its largest absolute SE gains in guided-propagation environments (tunnels, indoor corridors, street canyons), where wall reflections partially confine the signal energy~\cite{rappaport2015mmwave,molisch2006channel}. This finding opens a new deployment paradigm: IRS-assisted communication in confined spaces where the propagation environment naturally enhances both hops of the cascaded channel.
+
+Specifically, at $\alpha_{\mathrm{PL}} = 0.5$, the IRS cascaded effective exponent is only $2 \times 0.5 = 1.0$, which is below the free-space exponent for a single hop. This means the IRS reflected path experiences \textit{less} attenuation than a hypothetical single-hop free-space link of the same total distance---a remarkable result enabled by the waveguide-like propagation on both cascaded hops.
+
+\subsection{Physical Interpretation of Key Results}
+
+\subsubsection{Why IRS Outage Is More Sensitive to $K$-Factor Than DF Relay}
+
+The 1.8$\times$ sensitivity ratio (Eq.~\eqref{eq:sensitivity_ratio}) has a clear physical explanation. The DF relay applies a $\min(\cdot)$ operation (Eq.~\eqref{eq:se_df}) which acts as a \textit{built-in diversity mechanism}: even if one hop fades deeply, the bottleneck constraint limits catastrophic failure as long as the other hop remains strong. This selection diversity provides intrinsic robustness to fading variance, independent of $K$.
+
+In contrast, the IRS combines signals through a \textit{product} $|h_{\mathrm{SR}}| \cdot |h_{\mathrm{RD}}|$ (Eq.~\eqref{eq:se_irs}). If either factor fades, the product fades proportionally. At $K = 0$~dB, both factors experience substantial Ricean variance ($\mathrm{Var}[|h|] = (4-\pi)/(4(1+K)) \approx 0.215$ for $K = 1$), and the product distribution has a heavy left tail. At $K = 25$~dB, the LOS component dominates both factors with $\mathrm{Var}[|h|] \approx 6.8 \times 10^{-4}$, collapsing the product distribution to a narrow peak. This ``variance compression'' effect is multiplicative rather than additive, explaining why the outage improvement ($+38.7\%$) far exceeds the median improvement ($+7.07\%$).
+
+\subsubsection{Why Cluster Count Affects Variance But Not Median}
+
+The cluster power normalisation constraint $\sum_{l=1}^{L} P_l = 1$ ensures that $\mathbb{E}[|h_{\mathrm{NLOS}}|^2] = 1$ regardless of $L$. This preserves the first moment (mean) while reducing higher moments through the law of large numbers~\cite{tse2005fundamentals}.
+
+At $L = 1$: The channel gain is determined by 20 sub-paths from a single cluster. The magnitude approximately follows a Rayleigh distribution with unit variance of the power: $\mathrm{Var}[|h|^2] \approx 1$.
+
+At $L = 20$: The channel is the sum of 20 independent cluster contributions. By the central limit theorem, the variance scales as $\mathrm{Var}[|h|^2] \approx 1/L = 0.05$---a 20$\times$ reduction compared to $L = 1$.
+
+This explains why the CDF slope steepens dramatically from $L = 1$ to $L = 20$ while the median remains essentially unchanged. The practical consequence is that multipath richness provides ``free'' reliability enhancement without requiring additional infrastructure.
+
+\subsubsection{The $N^2$ Gain vs.\ Double-Fading Trade-Off}
+
+The IRS received power scales as:
+\begin{align}
+P_{\mathrm{rx,IRS}}
+&\propto
+\left(
+N\alpha
+\sqrt{
+\beta_{\mathrm{LOS}}(d_{\mathrm{SR}})
+\cdot
+\beta_{\mathrm{LOS}}(d_{\mathrm{RD}})
+}
+\right)^2
+\nonumber\\
+&=
+N^2\alpha^2 \cdot \beta_{\mathrm{cascade}}
+\label{eq:power_tradeoff}
+\end{align}
+
+The $N^2$ beamforming gain must overcome the cascaded pathloss $\beta_{\mathrm{cascade}} = \beta(d_{\mathrm{SR}}) \cdot \beta(d_{\mathrm{RD}})$. IRS outperforms DF relay when:
+\begin{align}
+    N^2 \cdot \beta_{\mathrm{cascade}} > \min(\beta_{\mathrm{SR}}, \beta_{\mathrm{RD}})
+    \label{eq:irs_vs_df_condition}
+\end{align}
+
+At $\alpha_{\mathrm{PL}} = 0.5$: $\beta_{\mathrm{cascade}} \propto (d_{\mathrm{SR}} d_{\mathrm{RD}})^{-1.0}$, so the condition is easily satisfied even with moderate $N$. At $\alpha_{\mathrm{PL}} = 4.5$: $\beta_{\mathrm{cascade}} \propto (d_{\mathrm{SR}} d_{\mathrm{RD}})^{-9.0}$, requiring very large $N$ to compensate. This analysis quantifies why IRS deployment is most effective in low-exponent environments.
+
+\subsection{Limitations}
+
+\subsubsection{Single-User, Narrowband Assumption}
+
+The simulation considers a single source--destination pair with flat fading (narrowband). In practice, multi-user interference, frequency-selective fading, and OFDM subcarrier-level phase optimisation would affect the IRS gain~\cite{zheng2020irs_ofdm}. The $N^2$ scaling in Eq.~\eqref{eq:se_irs} assumes all elements are phase-aligned to a single user; in multi-user scenarios, the per-user gain reduces to $\mathcal{O}(N)$~\cite{wu2020irs_tutorial}.
+
+\subsubsection{Perfect Phase Knowledge}
+
+The IRS phase alignment assumes perfect channel state information (CSI) at the IRS controller. In practice, channel estimation for $N = 200$ elements requires $\mathcal{O}(N)$ pilot symbols~\cite{jensen2020irs_estimation}, introducing overhead that reduces effective throughput. The SE values reported here represent an upper bound achievable with perfect CSI.
+
+\subsubsection{Ideal Reflection Coefficient}
+
+The simulation uses $\alpha = 1$ (lossless reflection). Practical IRS implementations exhibit $\alpha \in [0.7, 0.95]$ due to element absorption and phase-dependent amplitude variation~\cite{tang2020irs_pathloss}. This reduces the effective beamforming gain by a factor of $\alpha^2 \in [0.49, 0.90]$.
+
+\subsubsection{Simplified Pathloss Model}
+
+The pathloss exponents below 2.0 ($\alpha_{\mathrm{PL}} = 0.5$ and $1.0$) represent idealised guided-propagation scenarios. While such exponents have been measured in indoor corridors and tunnels~\cite{molisch2006channel}, they may not hold over the full distance range $d_1 \in [40, 100]$~m. A distance-dependent dual-slope pathloss model~\cite{rappaport2015mmwave} would better capture realistic propagation in these environments, where the exponent transitions from below 2.0 at short range to above 3.0 beyond a breakpoint distance.
+
+\subsubsection{Static Deployment}
+
+All nodes are stationary. User mobility would introduce Doppler spread and temporal channel variation, requiring periodic IRS phase updates. The update rate depends on the coherence time $T_c = 9c / (16\pi f_c v)$~\cite{goldsmith2005wireless}, where $v$ is the user velocity. At pedestrian speed ($v = 1.5$~m/s) and $f_c = 3$~GHz, $T_c \approx 30$~ms, permitting frequent updates. At vehicular speed ($v = 60$~km/h), $T_c \approx 1.3$~ms, which may be insufficient for $N = 200$ element phase optimisation.
+
+\subsubsection{Far-Field Assumption}
+
+The IRS channel model assumes far-field (planar wavefront) propagation. For $N = 200$ elements at half-wavelength spacing, the IRS aperture is approximately $D = 100 \times \lambda = 10$~m (assuming a square array of $\sim$$14 \times 14$ elements). The Fraunhofer distance is $d_{\mathrm{Fraun}} = 2D^2/\lambda = 2 \times 1 / 0.1 = 20$~m. Since $d_{\mathrm{SR}} = 80$~m and $d_{\mathrm{RD}} \geq 10$~m, the far-field assumption is marginally valid for the shortest R$\to$D distances. Near-field effects~\cite{cui2022nearfield} could provide additional spatial focusing gains not captured here.
+
+\subsection{Future Research Directions}
+
+The results and limitations of this study motivate several directions for future work:
+
+\begin{enumerate}
+    \item \textbf{Multi-user IRS with SCM fading}: Extend the simulation to $U > 1$ users. Evaluate whether the $K$-factor sensitivity ratio of 1.8$\times$ persists when the IRS must serve multiple users with conflicting phase requirements.
+
+    \item \textbf{Imperfect CSI}: Incorporate channel estimation error models~\cite{jensen2020irs_estimation} and quantify SE degradation as a function of pilot overhead $\tau_p / T_c$ and IRS size $N$.
+
+    \item \textbf{Wideband / OFDM extension}: Evaluate IRS under frequency-selective fading with OFDM, where phase alignment must balance performance across subcarriers~\cite{zheng2020irs_ofdm}.
+
+    \item \textbf{Dual-slope pathloss model}: Replace the single-exponent model with a dual-slope function that transitions from $\alpha_{\mathrm{PL}} < 2$ (near-field, guided) to $\alpha_{\mathrm{PL}} > 2$ (far-field, urban) at a breakpoint distance, providing more realistic evaluation of sub-free-space scenarios.
+
+    \item \textbf{Active IRS}: Evaluate active architectures where each element includes a low-noise amplifier ($\alpha > 1$), potentially eliminating the double-fading bottleneck at the cost of noise amplification~\cite{zhang2022active_irs}.
+
+    \item \textbf{Near-field beamforming}: For large $N$ at high frequencies, investigate spherical-wave IRS models~\cite{cui2022nearfield} that enable spatially focused beamforming with different scaling laws.
+
+    \item \textbf{Experimental validation}: Conduct over-the-air measurements with a hardware IRS prototype in the deployment scenarios identified as most favourable ($\alpha_{\mathrm{PL}} \leq 2.0$, $K \geq 10$~dB, $L \geq 6$).
+\end{enumerate}
+
+
+
+% ==========================================================================
+% SECTION: CONCLUSION (UPDATED)
+% ==========================================================================
+\section{Conclusion}
+\label{sec:conclusion}
+
+This paper extended the analytical comparison of IRS-assisted and DF relay communications from~\cite{bjornson2020irs} by incorporating stochastic fading through the 3GPP Spatial Channel Model~\cite{etsi125996}. Four parameter sweeps---Ricean $K$-factor ($K \in \{0, 10, 25\}$~dB), pathloss exponent ($\alpha_{\mathrm{PL}} \in \{0.5, 1.0, 2.0, 3.0, 4.5\}$), scattering cluster count ($L \in \{1, 3, 6, 20\}$), and minimum element count $N_{\mathrm{min}}$---were conducted over 1000 Monte Carlo realisations to evaluate spectral efficiency under realistic channel conditions.
+
+The principal findings are:
+
+\begin{enumerate}
+    \item \textbf{IRS with $N = 200$ consistently outperforms DF relay across all channel conditions tested.} At the reference distance $d_1 = 80$~m, IRS achieves a median SE of 11.364--12.167~bit/s/Hz compared to 7.246--7.405~bit/s/Hz for DF relay, corresponding to a gain of $+56.8\%$ to $+64.3\%$.
+
+    \item \textbf{The Ricean $K$-factor has a dramatic effect on IRS reliability.} The 10th percentile (outage) SE improves by $+38.7\%$ as $K$ increases from 0~dB to 25~dB (8.606 $\to$ 11.938~bit/s/Hz). The outage-to-median ratio improves from 75.7\% to 98.1\%, indicating near-deterministic performance at high $K$. IRS is 1.8$\times$ more sensitive to $K$-factor than DF relay at the outage level.
+
+    \item \textbf{The pathloss exponent is the dominant environmental factor.} The extended range ($\alpha_{\mathrm{PL}} = 0.5$ to $4.5$) reveals that IRS is most advantageous in guided-propagation environments ($\alpha_{\mathrm{PL}} \leq 2.0$), where the cascaded effective exponent ($2\alpha_{\mathrm{PL}}$) remains at or below free-space levels. At $\alpha_{\mathrm{PL}} = 4.5$ (dense urban), the double-fading penalty ($2 \times 4.5 = 9.0$ effective exponent) substantially erodes the IRS advantage.
+
+    \item \textbf{Scattering richness ($L$) affects reliability but not average performance.} Increasing $L$ from 1 to 20 steepens the SE distribution without shifting the median, consistent with variance reduction scaling as $\mathrm{Var} \propto 1/L$ from the central limit theorem.
+
+    \item \textbf{$N_{\mathrm{min}}$ decreases modestly with $K$-factor}: from 190 elements ($K = 0$~dB) to 169 elements ($K = 25$~dB)---an 11.1\% reduction---with diminishing returns beyond $K = 10$~dB ($-0.33$ elements/dB vs.\ $-1.6$ elements/dB below $K = 10$~dB).
+\end{enumerate}
+
+Based on these findings, the following design guidelines are recommended for practical IRS deployment:
+
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Site selection}: Prioritise locations with LOS quality $K \geq 10$~dB on both hops and pathloss exponent $\alpha_{\mathrm{PL}} \leq 3.0$. Indoor corridors, tunnels, and open rooftops are ideal candidates.
+
+    \item \textbf{IRS sizing}: Apply the $K$-dependent correction $N_{\mathrm{min}}^{\mathrm{practical}} \approx N_{\mathrm{min}}^{(0)} \cdot (1 - 0.11\,K_{\mathrm{dB}}/25)$ to avoid over-provisioning in strong-LOS environments.
+
+    \item \textbf{Geometric placement}: Position the IRS to minimise $d_{\mathrm{RD}}$ (i.e., $d_1 \approx d_{\mathrm{SR}}$). This rule is invariant to $K$-factor, $\alpha_{\mathrm{PL}}$, and $L$.
+
+    \item \textbf{Frequency planning}: At sub-6~GHz ($L \geq 6$), IRS reliability is naturally high. At mmWave ($L \leq 3$), deploy larger surfaces or ensure $K \geq 25$~dB to compensate for sparse-scattering variance.
+
+    \item \textbf{Fallback strategy}: In dense urban environments ($\alpha_{\mathrm{PL}} \geq 4.5$), DF relay remains a robust alternative that avoids the double-fading penalty inherent to passive IRS architectures.
+\end{itemize}
+
+The deterministic analysis of~\cite{bjornson2020irs} remains valid as an upper bound on IRS performance. The stochastic extension presented here quantifies the gap between deterministic and realistic performance, providing the channel-condition-specific insights needed for informed deployment decisions. Future work should extend this framework to multi-user scenarios, imperfect CSI, active IRS architectures, and hardware-measured prototypes.
+
+
+\bibliographystyle{IEEEtran}
+\bibliography{references}
+\end{document}
